@@ -1,16 +1,24 @@
 package com.blockchain.CryptocurrenciesCalculator;
 
+import java.io.IOException;
+import java.text.Format;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
+import info.blockchain.api.APIException;
 import info.blockchain.api.blockexplorer.BlockExplorer;
 import info.blockchain.api.blockexplorer.entity.Address;
 import info.blockchain.api.blockexplorer.entity.Block;
 import info.blockchain.api.blockexplorer.entity.Transaction;
 
-public class App {
 
-	public static void main( String[] args ) throws Exception
+
+public class App 
+{
+    public static void main( String[] args ) throws Exception
     {		
     	//Miner's Public Address
     	
@@ -28,12 +36,12 @@ public class App {
 		int endMonth=1;
 		int endDay=19;
 		
-		BlockExplorer bc = new BlockExplorer();
+		BlockExplorer bc=new BlockExplorer();
 		
-		Address address = bc.getAddress(strPublicAddress);
+		Address address=bc.getAddress(strPublicAddress);
 
 		//Get List of last 50 transactions by miner
-		List<Transaction> listTransactions = address.getTransactions();
+		List<Transaction> listTransactions=address.getTransactions();
 		
 		System.out.println("Total Num Transacs: "+listTransactions.size()+"\n");
 		
@@ -98,14 +106,8 @@ public class App {
 
 						//Value is in Satoshi...So We need to multiply by 10^-8 to convert into BTC
 						
-						totalTransactionFee += (double) (t.getOutputs().get(j).getValue()) * Math.pow(10, -8); //Need to convert from Satoshi to BTC	*
+						totalTransactionFee+=(double) (t.getOutputs().get(j).getValue()) *Math.pow(10, -8); //Need to convert from Satoshi to BTC	**
 						
-					/*
-					 * if(t.getOutputs().get(j).isSpent()) { t.getOutputs().get(j).
-					 * spendDetected=true; break;
-					 */
-												
-						//totalTransactionFee+=(double) (t.getOutputs().get(j).getValue());
 						
 					} //End of If Condition
 					
@@ -157,10 +159,10 @@ public class App {
 		//Expected HashRate
 		double H=(A*G)/R;
 		
-		System.out.println("Total Fee for Miner, A: "+sumFees+"\n");
-		System.out.println("Difficulty: "+D+"\n");
-		System.out.println("Global Hash Rate: "+G+" \n");
-		System.out.println("Expected Hash Rate: "+H+" \n");
+		System.out.println("Total Fee for Miner, A: "+sumFees+"BTC\n");
+		System.out.println("Difficulty, D: "+D+"\n");
+		System.out.println("Global Hash Rate, G: "+G+" hashes/second\n");
+		System.out.println("Expected Hash Rate, H: "+H+" hashes/second\n");
 		System.out.println("Num Blocks Mined within Timeframe: "+numBlocksMined+"\n");
 		
 		System.out.println("H/G in terms of HashRate: "+H/G+"\n");
@@ -168,57 +170,85 @@ public class App {
 		System.out.println("H/G in terms of blocks mined: "+ (float) ( (float) numBlocksMined/432)+"\n");
 		
 		
+		//-------------------Given H, Find Expected Assets of a Miner with respect to Global Computer Power-------------
+		
+		System.out.println("Given HashRate of Miner, We find how much Bitcoins He/She can expect to earn:");
+		
+		double[] arrA=new double[10];
+		
+		for(int i=10;i<20;i++) {
+			
+			double variableHashRate=Math.pow(10, i);
+			
+			arrA[i-10]=(variableHashRate/G)*R;
+			System.out.println(arrA[i-10]);
+		}
+
+		System.out.println("Given that Bitcoin's throughput (R) increases over a timeframe, We"
+				+" investigate how the Mining difficulty adjusts itself.");
+		
+		double[] arrD=new double[20];
+		
+		for(int i=1;i<20;i++) {
+			
+			//double variableR=()
+			arrD[i-1]= (G*600)/(i*10*24*6*3*Math.pow(2, 32));
+			System.out.println(arrD[i-1]);
+		}
 		
 		
 		
-    } // End of main
-
-	// -------------------------------------------------------------------------------------------------------------
-
-	// Calculate Mining Difficulty
-	// Convert bits retrieved to decimal value
-	private static Double getDifficulty(String hash) throws Exception {
-
-		// Get Block using Hash
-
+		
+		
+		
+		
+    } //End of main
+    
+  //-------------------------------------------------------------------------------------------------------------
+    
+    
+    //Calculate Mining Difficulty
+    //Convert bits retrieved to decimal value
+    private static Double getDifficulty(String hash) throws Exception {
+		
+		//Get Block using Hash 
+    	
 		BlockExplorer blockExplorer = new BlockExplorer();
 		Block block = blockExplorer.getBlock(hash);
-
-		// Hexa of Constant Target:
-		// 00000000FFFF0000000000000000000000000000000000000000000000000000
-
+		
+		//Hexa of Constant Target: 00000000FFFF0000000000000000000000000000000000000000000000000000		
+		
 		Double constantTarget = new Double("26959535291011309493156476344723991336010898738574164086137773096960");
-
-		// Retrieve bits and convert to Hexa
+		
+		//Retrieve bits and convert to Hexa
 		long bitsLong = block.getBits();
 		String hexString = Long.toHexString(bitsLong);
-
-		// Split hexa bits into 2 parts:
-		// 1. First 2 digits
-		// 2. Remaining digits
+		
+		//Split hexa bits into 2 parts:
+		//1. First 2 digits
+		//2. Remaining digits
 		String firstTwoDigits = hexString.substring(0, 2);
 		String lastDigits = hexString.substring(2);
-
-		// Apply Formula: D = constantTarget/ (remainingDigits * 2^ (8*
-		// (firstTwoDigit-3) ))
-		Long longFirstTwoDigits = 8 * (Long.parseLong(firstTwoDigits, 16) - 3);
-		Double power = Math.pow(2, longFirstTwoDigits);
+		
+		//Apply Formula: D = constantTarget/ (remainingDigits * 2^ (8* (firstTwoDigit-3) ))
+		Long longFirstTwoDigits = 8*(Long.parseLong(firstTwoDigits, 16) - 3);
+		Double power =  Math.pow(2, longFirstTwoDigits);
 		Double pow = new Double(String.valueOf(power));
-
-		Long longLastDigits = Long.parseLong(lastDigits, 16);
+		
+		Long longLastDigits = Long.parseLong(lastDigits,16);
 		Double lastdigitsString = new Double(String.valueOf(longLastDigits));
-
+		
 		Double multi = lastdigitsString * pow;
-
+		
 		Double diffculty = constantTarget / multi;
-
+		
 		return diffculty;
 	}
-
-	// --------------------------------------------------------------------------------------------------------------------------
-
-	// Convert time from long to proper Date Format
-	public static Date convertTime(long time) {
-		return new Date(time * 1000);
-	}
+    
+  //--------------------------------------------------------------------------------------------------------------------------  
+    
+    //Convert time from long to proper Date Format
+    public static Date convertTime(long time){
+        return new Date(time*1000);
+    }
 }
